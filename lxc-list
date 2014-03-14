@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 import commands
 
 GREEN = '\033[92m'
@@ -39,7 +39,8 @@ def format_top_level_processes(allprocs, node_name):
 
 
 # get a list of lxc nodes configured in /etc/lxc
-nodes = commands.getstatusoutput('grep utsname /etc/lxc/*.conf | sed "s/^.*utsname = //" | sort | uniq')[1].split('\n')
+# nodes = commands.getstatusoutput('find /var/lib/lxc/ -maxdepth 2 -name "config" | xargs grep "lxc\.utsname" | sed "s/lxc\.utsname = //g" | sort')[1].split('\n')
+nodes = commands.getstatusoutput('lxc-ls')[1].split('\n')
 
 # calculate output table based on max length of node names
 maxnodelen = max([len(node) for node in nodes])
@@ -50,6 +51,7 @@ print fmt % ('NAME', 'STATUS', 'SERVICES')
 allprocs = get_top_level_processes()
 
 for node in nodes:
-    stat = commands.getstatusoutput('lxc-info -q -n %s' % (node))[1].split(' ')[2].lower()
+    stat = commands.getstatusoutput('lxc-info -s -n %s' % (node))[1].split(' ')[-1].lower()
     print fmt % (node, format_stat(stat), format_top_level_processes(allprocs, node))
+
 
