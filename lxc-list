@@ -43,7 +43,7 @@ def format_top_level_processes(allprocs, node_name):
 nodes = commands.getstatusoutput('lxc-ls')[1].split('\n')
 
 # calculate output table based on max length of node names
-maxnodelen = max([len(node) for node in nodes])
+maxnodelen = max([4]+[len(node) for node in nodes])
 fmt = " %%-%ds | %%-7s | %%s" % (maxnodelen)
 
 # get status of each and print it out
