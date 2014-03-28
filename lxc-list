@@ -8,12 +8,16 @@ ENDC = '\033[0m'
 
 expected_processes = ['sshd', 'agetty', 'syslog-ng', 'cron']
 
-def get_top_level_processes():
-    output = commands.getstatusoutput('lxc-ps --lxc -o pid -o comm -o ppid')[1]
+def get_top_level_processes(nodes):
     procs = []
-    for proc in output.rstrip('\n').split('\n')[1:]:
-        fields = proc.split()
-        procs.append({'nodename': fields[0], 'pid': fields[1], 'procname': fields[2], 'ppid': fields[3]})
+    for node in nodes:
+        stat = commands.getstatusoutput('lxc-info -s -n %s' % node)[1].split(' ')[-1]
+        if stat == 'RUNNING':
+            ok, ps_out = commands.getstatusoutput('lxc-attach -n %s -- ps --no-headers -ax -o pid -o comm -o ppid' % node)
+            if ok == 0:
+                for proc in ps_out.rstrip('\n').split('\n'):
+                    fields = proc.split()
+                    procs.append({'nodename': node, 'pid': fields[0], 'procname': fields[1], 'ppid': fields[2]})
     return procs
 
 def add_colour(s, col):
@@ -29,7 +33,7 @@ def format_stat(stat):
 def format_top_level_processes(allprocs, node_name):
     procs = [proc for proc in allprocs if proc['nodename'] == node]
     if len(procs) > 0:
-        initpid = [proc['pid'] for proc in procs if proc['procname'] == 'init'][0]
+        initpid = [proc['pid'] for proc in procs if proc['procname'] == 'systemd'][0]
         services = [proc['procname'] for proc in procs if proc['ppid'] == initpid]
         expected_services = [service for service in services if service in expected_processes]
         special_services = [service for service in services if not service in expected_processes]
@@ -48,7 +52,7 @@ fmt = " %%-%ds | %%-7s | %%s" % (maxnodelen)
 
 # get status of each and print it out
 print fmt % ('NAME', 'STATUS', 'SERVICES')
-allprocs = get_top_level_processes()
+allprocs = get_top_level_processes(nodes)
 
 for node in nodes:
     stat = commands.getstatusoutput('lxc-info -s -n %s' % (node))[1].split(' ')[-1].lower()
